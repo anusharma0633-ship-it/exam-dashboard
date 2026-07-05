@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Management System Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#3b82f6',
+                        'secondary-gray': '#f4f4f5',
+                        'card-bg': '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chosen Palette: Minimalist Sky-Blue & Neutral Gray -->
+    <!-- Application Structure Plan: Dashboard with fixed left sidebar for role/main navigation and a dynamic content area. The structure is designed to compartmentalize the distinct functionalities of the Admin, Teacher, and Student roles into separate, easily switchable views. This separation ensures that each user type sees only the information relevant to their tasks (e.g., Admin sees system-wide data, Teacher sees class performance, Student sees personal progress), minimizing cognitive load and maximizing task efficiency. The dashboard is divided into Key Metrics (cards), Visualizations (charts), and Detailed Data (tables/lists). -->
+    <!-- Visualization & Content Choices: Admin Test Performance: Goal: Trend Analysis. Viz: Line Chart (Chart.js). Interaction: None. Justification: Clearly displays time-series data. Admin Monthly Growth: Goal: Comparison/Quantity. Viz: Bar Chart (Chart.js). Interaction: None. Justification: Excellent for comparing discrete monthly values. Student Subject Analysis: Goal: Comparison/Gaps. Viz: Radar Chart (Chart.js). Interaction: None. Justification: Provides a quick, multi-dimensional view of strengths and weaknesses across subjects. All Management/Records: Goal: Organization/Filtering. Viz: HTML Tables. Interaction: Mock Filter/Search (JS). Justification: Best for detailed, structured data listings. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .dashboard-content { height: calc(100vh - 4rem); overflow-y: auto; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .nav-link { transition: all 0.1s ease-in-out; }
+    </style>
+</head>
+<body class="bg-secondary-gray min-h-screen">
+
+    <div class="flex h-screen">
+        
+        <!-- Sidebar Navigation (Role Selector) -->
+        <aside class="w-64 bg-card-bg shadow-xl p-4 flex flex-col justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-8">LMS Portal</h2>
+                
+                <nav>
+                    <button id="nav-admin" class="nav-link w-full text-left p-3 rounded-xl mb-2 flex items-center bg-primary-blue text-white font-semibold" onclick="switchRole('Admin')">
+                        <span class="mr-3">⚙️</span> Admin Dashboard
+                    </button>
+                    <button id="nav-teacher" class="nav-link w-full text-left p-3 rounded-xl mb-2 flex items-center text-gray-600 hover:bg-gray-100" onclick="switchRole('Teacher')">
+                        <span class="mr-3">👨‍🏫</span> Teacher Dashboard
+                    </button>
+                    <button id="nav-student" class="nav-link w-full text-left p-3 rounded-xl mb-2 flex items-center text-gray-600 hover:bg-gray-100" onclick="switchRole('Student')">
+                        <span class="mr-3">🧑‍🎓</span> Student Dashboard
+                    </button>
+                </nav>
+            </div>
+            
+            <div class="border-t pt-4">
+                <p class="text-sm text-gray-500">Current User: <span id="current-role-display" class="font-semibold text-primary-blue">Admin</span></p>
+                <button class="w-full text-left p-2 rounded-lg mt-2 text-sm text-red-500 hover:bg-red-50">
+                    <span class="mr-2">🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-auto p-4 md:p-8">
+            <header class="h-16 flex items-center justify-between mb-4">
+                <h1 id="header-title" class="text-3xl font-bold text-gray-700">Admin Dashboard</h1>
+            </header>
+            
+            <div class="dashboard-content">
+
+                <!-- Admin Dashboard Content -->
+                <section id="admin-dashboard" class="hidden">
+                    
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-700">System Overview</h2>
+                    
+                    <!-- Key Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Total Students</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">1,452</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Total Teachers</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">88</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Active Tests</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">45</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Monthly Growth</p>
+                            <p class="text-3xl font-bold text-green-500 mt-1">+12.5%</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Analytics Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                        <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Test Performance Trends (Last 6 Months)</h3>
+                            <div class="chart-container">
+                                <canvas id="adminPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Monthly User Growth</h3>
+                            <div class="chart-container">
+                                <canvas id="adminGrowthChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Management Tables -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-700">User Management</h3>
+                        <p class="text-sm text-gray-500 mb-4">View and manage system users (students and teachers).</p>
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Alice Johnson</td><td class="px-6 py-4 whitespace-nowrap">Teacher</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span></td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="#" class="text-primary-blue hover:text-blue-700">Edit</a></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Mark Smith</td><td class="px-6 py-4 whitespace-nowrap">Student</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span></td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="#" class="text-primary-blue hover:text-blue-700">Edit</a></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Teacher Dashboard Content -->
+                <section id="teacher-dashboard" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-700">Class & Test Management</h2>
+                    
+                    <!-- Key Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Total Students</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">75</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Active Tests</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">5</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Class Average</p>
+                            <p class="text-3xl font-bold text-green-600 mt-1">82.4%</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Questions Created</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">210</p>
+                        </div>
+                    </div>
+
+                    <!-- Actions and Student Records -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- Actions -->
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold mb-4 text-gray-700">Test Creation</h3>
+                                <button class="w-full bg-primary-blue text-white py-2 rounded-lg font-medium hover:bg-blue-600">Create NEW Test</button>
+                                <button class="w-full bg-gray-200 text-gray-800 py-2 rounded-lg font-medium mt-3 hover:bg-gray-300">Schedule Test</button>
+                            </div>
+                            
+                            <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold mb-4 text-gray-700">Question Bank</h3>
+                                <ul class="space-y-2 text-sm text-gray-600">
+                                    <li class="p-2 border-b">Math (Algebra) <span class="float-right text-gray-400">50 Qs</span></li>
+                                    <li class="p-2 border-b">Science (Physics) <span class="float-right text-gray-400">75 Qs</span></li>
+                                    <li class="p-2">History (WWII) <span class="float-right text-gray-400">85 Qs</span></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Student Records Table -->
+                        <div class="lg:col-span-2 bg-card-bg p-6 rounded-xl shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Students Performance Records</h3>
+                            <p class="text-sm text-gray-500 mb-4">Latest test scores and performance summary.</p>
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Score</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attendance</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr><td class="px-6 py-4 whitespace-nowrap">J. Doe</td><td class="px-6 py-4 whitespace-nowrap text-green-600 font-medium">92%</td><td class="px-6 py-4 whitespace-nowrap">98%</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="#" class="text-primary-blue hover:text-blue-700">View Detail</a></td></tr>
+                                    <tr><td class="px-6 py-4 whitespace-nowrap">K. Lee</td><td class="px-6 py-4 whitespace-nowrap text-yellow-600 font-medium">78%</td><td class="px-6 py-4 whitespace-nowrap">90%</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="#" class="text-primary-blue hover:text-blue-700">View Detail</a></td></tr>
+                                    <tr><td class="px-6 py-4 whitespace-nowrap">S. Chen</td><td class="px-6 py-4 whitespace-nowrap text-red-600 font-medium">65%</td><td class="px-6 py-4 whitespace-nowrap">95%</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="#" class="text-primary-blue hover:text-blue-700">View Detail</a></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Student Dashboard Content -->
+                <section id="student-dashboard" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-700">My Learning Overview</h2>
+                    
+                    <!-- Key Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Upcoming Exam</p>
+                            <p class="text-2xl font-bold text-gray-800 mt-1">Math (10/25)</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Available Tests</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">7</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Total Bookmarks</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">24</p>
+                        </div>
+                        <div class="bg-card-bg p-5 rounded-xl shadow-md">
+                            <p class="text-sm text-gray-500">Current Rank</p>
+                            <p class="text-3xl font-bold text-amber-500 mt-1">#5</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- Performance Analysis Chart -->
+                        <div class="lg:col-span-2 bg-card-bg p-6 rounded-xl shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Subject Performance Analysis</h3>
+                            <p class="text-sm text-gray-500 mb-4">View your strengths and weaknesses across all subjects.</p>
+                            <div class="chart-container" style="max-height: 500px;">
+                                <canvas id="studentAnalysisChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Leaderboard -->
+                        <div class="lg:col-span-1 bg-card-bg p-6 rounded-xl shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Top 5 Leaderboard</h3>
+                            <ul class="divide-y divide-gray-200">
+                                <li class="py-3 flex justify-between items-center"><span class="font-bold text-amber-500 mr-2">#1</span> Alice (98.5%)</li>
+                                <li class="py-3 flex justify-between items-center"><span class="font-bold text-gray-400 mr-2">#2</span> Bob (95.1%)</li>
+                                <li class="py-3 flex justify-between items-center"><span class="font-bold text-orange-400 mr-2">#3</span> Charlie (93.8%)</li>
+                                <li class="py-3 flex justify-between items-center"><span class="font-semibold mr-2">#4</span> You! (91.0%)</li>
+                                <li class="py-3 flex justify-between items-center"><span class="font-semibold mr-2">#5</span> Eve (90.5%)</li>
+                            </ul>
+                            <button class="w-full bg-gray-100 text-primary-blue py-2 rounded-lg font-medium mt-4 hover:bg-gray-200">View Full Leaderboard</button>
+                        </div>
+
+                        <!-- Available Tests and Schedule -->
+                        <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                            <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold mb-4 text-gray-700">Available Tests</h3>
+                                <ul class="space-y-3">
+                                    <li class="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50">
+                                        <span class="font-medium">Math Midterm Prep</span>
+                                        <button class="text-sm bg-primary-blue text-white px-3 py-1 rounded-full">Start Mock</button>
+                                    </li>
+                                    <li class="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50">
+                                        <span class="font-medium">Science Chapter 3 Quiz</span>
+                                        <button class="text-sm bg-primary-blue text-white px-3 py-1 rounded-full">Start Test</button>
+                                    </li>
+                                    <li class="flex justify-between items-center p-3 rounded-lg border hover:bg-gray-50">
+                                        <span class="font-medium">History: Cold War Q Bank</span>
+                                        <button class="text-sm bg-gray-400 text-white px-3 py-1 rounded-full">Review</button>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="bg-card-bg p-6 rounded-xl shadow-md">
+                                <h3 class="text-xl font-semibold mb-4 text-gray-700">My Schedule (Next 3 Days)</h3>
+                                <ul class="space-y-3">
+                                    <li class="flex items-center text-sm"><span class="text-primary-blue font-semibold w-16">Today:</span> Algebra 101 Lecture</li>
+                                    <li class="flex items-center text-sm"><span class="text-primary-blue font-semibold w-16">Tomorrow:</span> Science Lab Session</li>
+                                    <li class="flex items-center text-sm"><span class="text-primary-blue font-semibold w-16">Fri:</span> History Assignment Due</li>
+                                </ul>
+                                <button class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium mt-4 hover:bg-gray-200">View Full Schedule</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let adminPerformanceChart, adminGrowthChart, studentAnalysisChart;
+        let currentRole = 'Admin';
+
+        const mockData = {
+            adminPerformance: [78, 80, 81, 85, 83, 87],
+            adminGrowth: [100, 110, 130, 125, 140, 160],
+            studentPerformance: [90, 75, 88, 65, 95]
+        };
+
+        const chartColors = {
+            blue: 'rgba(59, 130, 246, 1)',
+            lightBlue: 'rgba(59, 130, 246, 0.2)',
+            gray: 'rgba(156, 163, 175, 1)'
+        };
+
+        function switchRole(role) {
+            currentRole = role;
+            
+            document.querySelectorAll('section[id$="-dashboard"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${role.toLowerCase()}-dashboard`).classList.remove('hidden');
+
+            document.getElementById('header-title').textContent = `${role} Dashboard`;
+            document.getElementById('current-role-display').textContent = role;
+
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                btn.classList.remove('bg-primary-blue', 'text-white', 'font-semibold');
+                btn.classList.add('text-gray-600', 'hover:bg-gray-100');
+            });
+
+            document.getElementById(`nav-${role.toLowerCase()}`).classList.add('bg-primary-blue', 'text-white', 'font-semibold');
+            document.getElementById(`nav-${role.toLowerCase()}`).classList.remove('text-gray-600', 'hover:bg-gray-100');
+
+            initializeCharts();
+        }
+
+        function initializeAdminCharts() {
+            if (adminPerformanceChart) adminPerformanceChart.destroy();
+            adminPerformanceChart = new Chart(
+                document.getElementById('adminPerformanceChart'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                        datasets: [{
+                            label: 'Avg. System Performance (%)',
+                            data: mockData.adminPerformance,
+                            borderColor: chartColors.blue,
+                            backgroundColor: chartColors.lightBlue,
+                            fill: true,
+                            tension: 0.3,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: false, max: 100, title: { display: true, text: 'Percentage' } } }
+                    }
+                }
+            );
+
+            if (adminGrowthChart) adminGrowthChart.destroy();
+            adminGrowthChart = new Chart(
+                document.getElementById('adminGrowthChart'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                        datasets: [{
+                            label: 'New Users',
+                            data: mockData.adminGrowth,
+                            backgroundColor: chartColors.blue,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Users' } } }
+                    }
+                }
+            );
+        }
+
+        function initializeStudentCharts() {
+            if (studentAnalysisChart) studentAnalysisChart.destroy();
+            studentAnalysisChart = new Chart(
+                document.getElementById('studentAnalysisChart'),
+                {
+                    type: 'radar',
+                    data: {
+                        labels: ['Math', 'Science', 'History', 'English', 'Coding'],
+                        datasets: [{
+                            label: 'My Performance Score',
+                            data: mockData.studentPerformance,
+                            backgroundColor: chartColors.lightBlue,
+                            borderColor: chartColors.blue,
+                            pointBackgroundColor: chartColors.blue,
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: chartColors.blue
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { r: { angleLines: { display: false }, suggestedMin: 0, suggestedMax: 100, ticks: { backdropColor: 'white' } } }
+                    }
+                }
+            );
+        }
+
+        function initializeCharts() {
+            if (currentRole === 'Admin') {
+                initializeAdminCharts();
+            } else if (currentRole === 'Student') {
+                initializeStudentCharts();
+            }
+        }
+
+        window.onload = function() {
+            switchRole('Admin');
+        };
+    </script>
+
+</body>
+</html>
